@@ -5,20 +5,19 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'ClipForge_source_MVP_rebind.zip'
+      - '**.zip'
       - '.github/workflows/build.yml'
 
 permissions:
   contents: read
 
 jobs:
-
   build-fabric:
     name: Build Fabric JAR
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 21
@@ -27,14 +26,16 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Setup Gradle 9.2.1
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.2.1'
 
       - name: Extract source
         run: |
+          mkdir -p source
           unzip -q ClipForge_source_MVP_rebind.zip -d source
+          find source -maxdepth 3 -type f | head -60
 
       - name: Build Fabric mod
         run: |
@@ -47,13 +48,12 @@ jobs:
           path: source/ClipForge/fabric-mod/build/libs/*.jar
           if-no-files-found: error
 
-
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -62,27 +62,29 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle 8.11.1
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install SDK
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK packages
-        run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
       - name: Extract source
         run: |
+          mkdir -p source
           unzip -q ClipForge_source_MVP_rebind.zip -d source
+          find source -maxdepth 3 -type f | head -60
 
-      - name: Build Android APK
+      - name: Build APK
         run: |
           gradle -p source/ClipForge/android-app assembleDebug --no-daemon
 
-      - name: Upload Android APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ClipForge-Android-APK
